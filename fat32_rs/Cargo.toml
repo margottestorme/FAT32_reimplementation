@@ -1,15 +1,12 @@
 [package]
 name = "fat32_rs"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 
-
 [dev-dependencies]
-# Pour les tests qui utilisent des images de disque
-std = { package = "core", version = "1.0" } # Fausse déclaration pour utiliser `std` dans les tests
 
 [features]
-# Feature pour l'implémentation complète avec std (pour le CLI hôte et le BlockDevice)
+# La feature std active juste l’usage de std dans ton code
 std = []

@@ -1,24 +1,29 @@
-#![no_std]
+//! FAT32 implementation (no_std with optional std for tests/CLI)
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
 extern crate alloc;
 
+// Modules communs (fonctionnent en no_std)
+pub mod storage;       // BlockDevice abstraction
+pub mod boot_sector;   // FAT32 BPB parsing
+pub mod fat_volume;    // FAT32 volume logic
+
+// Modules spécifiques à std (ex: fichiers hôte, images, etc.)
+#[cfg(feature = "std")]
+pub mod host_device;
+
+// Exemple simple de fonction
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
-pub mod storage; // module BlockDevice
-pub mod boot_sector; // module pour les structures du BPB
-pub mod fat_volume; // module pour la structure principale du volume
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[cfg(feature = "std")]
-pub mod host_device;
-
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-
-//    #[test]
-//    fn it_works() {
-//        let result = add(2, 2);
-//        assert_eq!(result, 4);
-//    }
-//}
+    #[test]
+    fn add_works() {
+        assert_eq!(add(2, 2), 4);
+    }
+}
