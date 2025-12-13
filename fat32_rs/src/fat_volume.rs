@@ -10,7 +10,7 @@ const FAT32_RESERVED_MIN: u32 = 0x0FFFFF00; // Début de la plage réservée
 
 /// Représente l'état monté d'un volume FAT32
 pub struct FatVolume<D: BlockDevice> {
-    device: D,
+    pub device: D,
     // Paramètres clés extraits du Boot Sector :
     pub bytes_per_sector: u16,
     pub sectors_per_cluster: u8,
