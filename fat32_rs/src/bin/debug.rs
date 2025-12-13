@@ -32,12 +32,22 @@ fn main() -> Result<(), fat32_rs::storage::Error> {
     // Parcourir les entrées du répertoire
     for i in 0..(cluster_data.len() / 32) {
         let entry = &cluster_data[i*32..(i+1)*32];
-        if entry[0] == 0x00 { break; } // fin du répertoire
-        if entry[0] == 0xE5 { continue; } // fichier supprimé
+        let first = entry[0];
+        if first == 0x00 { break; }
+        if first == 0xE5 { continue; }
+        if first < 0x20 { continue; }
 
-        let name = std::str::from_utf8(&entry[0..8]).unwrap_or("").trim();
-        let ext = std::str::from_utf8(&entry[8..11]).unwrap_or("").trim();
-        println!("Found entry: {}.{}", name, ext);
+        let attr = entry[11];
+        if attr == 0x0F { continue; } // LFN
+
+        let name = std::str::from_utf8(&entry[0..8]).unwrap_or("").trim_end();
+        let ext  = std::str::from_utf8(&entry[8..11]).unwrap_or("").trim_end();
+
+        if ext.is_empty() {
+            println!("Found entry: {}", name);
+        } else {
+            println!("Found entry: {}.{}", name, ext);
+        }
     }
 
     Ok(())
