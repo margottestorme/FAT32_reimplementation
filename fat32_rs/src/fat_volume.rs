@@ -142,4 +142,98 @@ impl<D: BlockDevice> FatVolume<D> {
     pub fn is_eoc(fat_entry: u32) -> bool {
         fat_entry >= FAT32_EOC_MIN
     }
+
+    /// Lit un cluster complet dans le buffer fourni.
+    /// `buffer` doit être de taille `cluster_size_bytes`.
+    pub fn read_cluster(&mut self, cluster_id: u32, buffer: &mut [u8]) -> Result<(), Error> {
+        if cluster_id < 2 {
+            return Err(Error::InvalidParameter);
+        }
+
+        let cluster_size = self.cluster_size_bytes as usize;
+        if buffer.len() != cluster_size {
+            return Err(Error::InvalidParameter);
+        }
+
+        let first_sector_lba = self.cluster_to_lba(cluster_id)?;
+        let sectors_per_cluster = self.sectors_per_cluster as u32;
+
+        for i in 0..sectors_per_cluster {
+            let sector_lba = first_sector_lba + i;
+            let start = (i * self.bytes_per_sector as u32) as usize;
+            let end = start + self.bytes_per_sector as usize;
+
+            self.device.read_sector(sector_lba, &mut buffer[start..end])?;
+        }
+
+        Ok(())
+    }
+
+
+    /// Lit le contenu d’un fichier contenu dans un seul cluster (debug)
+    pub fn read_file_single_cluster(
+        &mut self,
+        first_cluster: u32,
+        file_size: u32,
+    ) -> Result<Vec<u8>, Error> {
+        if first_cluster < 2 {
+            return Err(Error::InvalidParameter);
+        }
+
+        let mut buffer = vec![0u8; self.cluster_size_bytes as usize];
+
+        // Lire le cluster du fichier
+        self.read_cluster(first_cluster, &mut buffer)?;
+
+        // Ne garder que la taille réelle du fichier
+        buffer.truncate(file_size as usize);
+
+        Ok(buffer)
+    }
+
+    /// Lit le contenu d’un fichier sur plusieurs clusters en suivant la FAT
+    pub fn read_file(
+        &mut self,
+        first_cluster: u32,
+        file_size: u32,
+    ) -> Result<Vec<u8>, Error> {
+        if first_cluster < 2 {
+            return Err(Error::InvalidParameter);
+        }
+
+        let mut buffer = Vec::with_capacity(file_size as usize);
+        let mut current_cluster = first_cluster;
+
+        let cluster_size = self.cluster_size_bytes as usize;
+        let mut cluster_buf = vec![0u8; cluster_size];
+
+        loop {
+            // Lire le cluster courant
+            self.read_cluster(current_cluster, &mut cluster_buf)?;
+
+            // Ajouter les octets au buffer final
+            if buffer.len() + cluster_size > file_size as usize {
+                let remaining = file_size as usize - buffer.len();
+                buffer.extend_from_slice(&cluster_buf[..remaining]);
+            } else {
+                buffer.extend_from_slice(&cluster_buf);
+            }
+
+            // Vérifier si on a tout lu
+            if buffer.len() >= file_size as usize {
+                break;
+            }
+
+            // Passer au cluster suivant via la FAT
+            let next = self.get_next_cluster(current_cluster)?;
+            if Self::is_eoc(next) {
+                break;
+            }
+
+            current_cluster = next;
+        }
+
+        Ok(buffer)
+    }
+
 }

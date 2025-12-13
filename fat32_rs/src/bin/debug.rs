@@ -43,10 +43,41 @@ fn main() -> Result<(), fat32_rs::storage::Error> {
         let name = std::str::from_utf8(&entry[0..8]).unwrap_or("").trim_end();
         let ext  = std::str::from_utf8(&entry[8..11]).unwrap_or("").trim_end();
 
+        // Cluster de départ (FAT32 = high + low)
+        let cluster_low  = u16::from_le_bytes([entry[26], entry[27]]) as u32;
+        let cluster_high = u16::from_le_bytes([entry[20], entry[21]]) as u32;
+        let first_cluster = (cluster_high << 16) | cluster_low;
+
+        // Taille du fichier
+        let file_size = u32::from_le_bytes([
+            entry[28],
+            entry[29],
+            entry[30],
+            entry[31],
+        ]);
+
         if ext.is_empty() {
-            println!("Found entry: {}", name);
+            println!(
+                "ENTRY {} | cluster={} | size={} bytes",
+                name, first_cluster, file_size
+            );
         } else {
-            println!("Found entry: {}.{}", name, ext);
+            println!(
+                "ENTRY {}.{} | cluster={} | size={} bytes",
+                name, ext, first_cluster, file_size
+            );
+        }
+
+        //if name == "HELLO" && ext == "TXT" {
+            //let content = vol.read_file_single_cluster(first_cluster, file_size)?;
+            //println!("--- Contenu HELLO.TXT ---");
+            //println!("{}", String::from_utf8_lossy(&content));
+        //}
+
+        if name == "TEST" && ext == "TXT" {
+            let content = vol.read_file(first_cluster, file_size)?;
+            println!("--- Contenu TEST.TXT ---");
+            println!("{}", String::from_utf8_lossy(&content));
         }
     }
 
