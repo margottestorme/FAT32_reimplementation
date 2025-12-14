@@ -8,6 +8,7 @@ extern crate alloc;
 pub mod storage;       // BlockDevice abstraction
 pub mod boot_sector;   // FAT32 BPB parsing
 pub mod fat_volume;    // FAT32 volume logic
+pub mod dir_entry;
 
 // Modules spécifiques à std (ex: fichiers hôte, images, etc.)
 #[cfg(feature = "std")]

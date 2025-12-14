@@ -1,12 +1,11 @@
-use alloc::vec::Vec; // Vec est conservé pour les étapes futures (ls, cat)
+use alloc::vec::Vec; 
 use core::convert::TryInto; // Nécessaire pour convertir le slice en tableau [u8; 4]
 use crate::storage::{BlockDevice, Error};
 use crate::boot_sector::Fat32BootSector;
+use crate::dir_entry::DirEntry;
 
 // Valeurs spéciales de la FAT32 pour l'interprétation des entrées
 const FAT32_EOC_MIN: u32 = 0x0FFFFFF8; // Début de la plage "End Of Chain"
-#[allow(dead_code)]
-const FAT32_RESERVED_MIN: u32 = 0x0FFFFF00; // Début de la plage réservée
 
 /// Représente l'état monté d'un volume FAT32
 pub struct FatVolume<D: BlockDevice> {
@@ -169,26 +168,77 @@ impl<D: BlockDevice> FatVolume<D> {
         Ok(())
     }
 
+    pub fn read_dir(&mut self, start_cluster: u32) -> Result<Vec<DirEntry>, Error> {
+        let mut entries = Vec::new();
+        let mut current_cluster = start_cluster;
 
-    /// Lit le contenu d’un fichier contenu dans un seul cluster (debug)
-    pub fn read_file_single_cluster(
-        &mut self,
-        first_cluster: u32,
-        file_size: u32,
-    ) -> Result<Vec<u8>, Error> {
-        if first_cluster < 2 {
-            return Err(Error::InvalidParameter);
+        let cluster_size = self.cluster_size_bytes as usize;
+        let mut buffer = vec![0u8; cluster_size];
+
+        loop {
+            self.read_cluster(current_cluster, &mut buffer)?;
+
+            for i in 0..(cluster_size / 32) {
+                let entry = &buffer[i * 32..(i + 1) * 32];
+
+                let first_byte = entry[0];
+
+                if first_byte == 0x00 {
+                    return Ok(entries); // fin du répertoire
+                }
+
+                if first_byte == 0xE5 {
+                    continue; // supprimé
+                }
+
+                let attr = entry[11];
+
+                if attr == 0x0F {
+                    continue; // LFN
+                }
+
+                let is_dir = attr & 0x10 != 0;
+
+                let name = core::str::from_utf8(&entry[0..8])
+                    .unwrap_or("")
+                    .trim_end();
+
+                let ext = core::str::from_utf8(&entry[8..11])
+                    .unwrap_or("")
+                    .trim_end();
+
+                let full_name = if ext.is_empty() {
+                    name.to_string()
+                } else {
+                    format!("{}.{}", name, ext)
+                };
+
+                let cluster_low =
+                    u16::from_le_bytes(entry[26..28].try_into().unwrap()) as u32;
+                let cluster_high =
+                    u16::from_le_bytes(entry[20..22].try_into().unwrap()) as u32;
+                let first_cluster = (cluster_high << 16) | cluster_low;
+
+                let size =
+                    u32::from_le_bytes(entry[28..32].try_into().unwrap());
+
+                entries.push(DirEntry {
+                    name: full_name,
+                    first_cluster,
+                    size,
+                    is_dir,
+                });
+            }
+
+            let next = self.get_next_cluster(current_cluster)?;
+            if Self::is_eoc(next) {
+                break;
+            }
+
+            current_cluster = next;
         }
 
-        let mut buffer = vec![0u8; self.cluster_size_bytes as usize];
-
-        // Lire le cluster du fichier
-        self.read_cluster(first_cluster, &mut buffer)?;
-
-        // Ne garder que la taille réelle du fichier
-        buffer.truncate(file_size as usize);
-
-        Ok(buffer)
+        Ok(entries)
     }
 
     /// Lit le contenu d’un fichier sur plusieurs clusters en suivant la FAT
@@ -235,5 +285,22 @@ impl<D: BlockDevice> FatVolume<D> {
 
         Ok(buffer)
     }
+
+    pub fn read_file_by_name(
+        &mut self,
+        dir_cluster: u32,
+        filename: &str,
+    ) -> Result<Vec<u8>, Error> {
+        let entries = self.read_dir(dir_cluster)?;
+
+        for entry in entries {
+            if entry.name.eq_ignore_ascii_case(filename) && !entry.is_dir {
+                return self.read_file(entry.first_cluster, entry.size);
+            }
+        }
+
+        Err(Error::InvalidParameter)
+    }
+
 
 }
