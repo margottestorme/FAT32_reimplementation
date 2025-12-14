@@ -46,11 +46,14 @@ src/
  ├── storage.rs      # BlockDevice trait & simple error type
  ├── host_device.rs        # File-backed BlockDevice implementation (require std)
  ├── fat_volume.rs         # FAT32 volume logic, cluster reading, FAT navigation, read_dir, read_file
+ ├── fat_volume_tests.rs      #Unit tests for FAT32 logic volume
  ├── dir_entry.rs     # Directory entry struct
  ├── boot_sector.rs         # FAT32 BIOS Parameter Block Parser
  ├── bin/       # Contains the executable binaries (CLI) for interacting with the project
     ├── cli.rs      # Mini-shell CLI for ls, cat, cd, exit
     ├── debug.rs    #Debug info/testing
+tests/
+ ├── integration.rs   # Integration test using a real FAT32 image 
 
 ```
 ---
@@ -113,6 +116,17 @@ cargo run --features std --bin debug
 cargo run --features std --bin cli
 ```
 ---
+
+## ✅ How to test
+
+This project requires a FAT32 disk image named `fat32.img`
+placed at the root of the repository.
+
+To run all tests:
+
+```bash
+cargo test --features std
+```
 
 ## 📄 Références et Crédits
 

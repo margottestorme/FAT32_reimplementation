@@ -20,6 +20,9 @@ pub fn add(left: u64, right: u64) -> u64 {
 }
 
 #[cfg(test)]
+mod fat_volume_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
