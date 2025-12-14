@@ -38,160 +38,93 @@ Writing and creating files will be implemented **in a second phase** once the re
 * **Few or no commits = 0** → proper commit history required
 * Any uncredited external code = **0**
 
-### Optional (bonus)
-
-* CLI interface
-* Use of:
-
-  * Miri
-  * Kani
-  * MIRAI
-  * Fuzzers
-
----
-
-## 🗂️ Project Structure (Recommended)
+## 🗂️ Project Structure           
 
 ```
 src/
- ├── lib.rs
- ├── block.rs       # BlockDevice trait & implementations
- ├── bpb.rs         # BIOS Parameter Block parser
- ├── fat.rs         # FAT table parsing & cluster chain following
- ├── cluster.rs     # Cluster-to-LBA logic & cluster reading
- ├── dir.rs         # Directory entry parsing (short + optional long names)
- ├── path.rs        # Path resolution, relative/absolute, ., ..
- ├── fs.rs          # High-level FileSystem struct and API
- ├── util.rs        # Helpers (endianness, errors, types)
-cli/ (optional)
- tests/
-```
-
----
-
-## 🧩 Features
-
-### Implemented in Phase 1 (Read-Only)
-
-* **Boot Sector & BPB parsing**
-* **FAT32 cluster chain navigation**
-* **Directory entry parsing (short names)**
-* **Optional:** Long File Name (LFN) support
-* **Path resolution**
-* **Read file content**
-* **List directory contents**
-
-### Phase 2 (Write Support – Later)
-
-* Allocate new clusters
-* Modify FAT entries
-* Create directory entries
-* Write file content
-
----
-
-## 📐 Technical Notes
-
-* FAT32 uses **little-endian** for all numeric fields
-* Sector size must be read from BPB (typically 512 bytes)
-* FAT32 End-of-Chain markers: `>= 0x0FFFFFF8`
-* Directory entries are 32 bytes each
-* Root directory is stored as a **cluster**, not at a fixed position
-* Long File Names use multiple 0x0F entries preceding a short entry
-
----
-
-## 🧪 Testing Strategy
-
-### Unit Tests
-
-* BPB parsing
-* LBA calculations
-* FAT entry parsing
-* Directory parsing
-* Path resolution
-
-### Integration Tests
-
-Use a real FAT32 image created with:
+ ├── lib.rs       # Core library, mod declarations, no_std
+ ├── storage.rs      # BlockDevice trait & simple error type
+ ├── host_device.rs        # File-backed BlockDevice implementation (require std)
+ ├── fat_volume.rs         # FAT32 volume logic, cluster reading, FAT navigation, read_dir, read_file
+ ├── dir_entry.rs     # Directory entry struct
+ ├── boot_sector.rs         # FAT32 BIOS Parameter Block Parser
+ ├── bin/       # Contains the executable binaries (CLI) for interacting with the project
+    ├── cli.rs      # Mini-shell CLI for ls, cat, cd, exit
+    ├── debug.rs    #Debug info/testing
 
 ```
+---
+
+## 🧩 Features Implemented
+
+* **Read-only FAT32 support**
+  * Boot Sector & BPB parsing
+  * FAT32 cluster chain navigation
+  * Directory entry parsing (short names only)
+  * Read file content
+  * List directory contents
+  * Current working directory tracking
+* **CLI** (`cli.rs`) supporting:
+  * `ls`
+  * `cat <file>`
+  * `cd /` (change to root)
+  * `exit`
+
+---
+
+## 🚨 Limitations
+
+* No support for writing files or directories
+* `cd ..` and relative paths (except `/`) are **not implemented**
+* Only short 8.3 filenames supported
+* Long File Names (LFN) are **not supported**
+* Requires a pre-existing FAT32 image
+
+---
+
+## 🛠️ Preparing a FAT32 Image for Testing
+
+Your  must create a FAT32 image before running `debug.rs` or `cli.rs`. For example:
+
+```bash
+# create a 16 MiB image
 dd if=/dev/zero of=fat32.img bs=1M count=16
+
+# format as FAT32
 mkfs.vfat -F 32 fat32.img
+
+# mount and add test files
+mkdir mnt
+sudo mount -o loop fat32.img mnt
+echo "Hello" > mnt/HELLO.TXT
+echo "test" > mnt/TEST.TXT
+mkdir mnt/DIR
+echo "directory test" > mnt/DIR/TEST_DIR.TXT
+sudo umount mnt
+rmdir mnt
+
 ```
-
-And test:
-
-* `ls /`
-* `ls /folder/subfolder`
-* `cat /file.txt`
-* Relative paths: `./`, `../`, `dir/file`
-* Current directory state
-
 ---
 
-## 🚧 Build & Run
-
-### Build (no_std library)
-
+## 🚀 Building and Running
+Run CLI or debug binaries (requires std feature):
 ```
-cargo build --release
+cargo run --features std --bin debug
+cargo run --features std --bin cli
 ```
-
-### Run the test binaries (with std enabled in test mode)
-
-```
-cargo test
-```
-
-### Optional CLI
-
-```
-cargo run -- ls /path
-cargo run -- cat /readme.txt
-cargo run -- cd folder
-```
-
 ---
 
-## 🛡️ Code Safety
+## 📄 Références et Crédits
 
-* Any use of `unsafe` **must** include:
+* **Documentation et Références Techniques**
+    * [FAT32 (Wikipedia, FR)](https://fr.wikipedia.org/wiki/FAT32)
+    * [Implémentation de Référence (vfat-rs)](https://github.com/FedericoPonzi/vfat-rs/tree/master)
 
-  * a `/// # Safety` rustdoc section
-  * a detailed explanation of invariants
-* Verify with:
+* **Ressources Multimédia**
+    * [Tutoriel YouTube pertinent](https://youtu.be/7o3qx66uLz8?si=O02DE-eeQRlQ3T2P)
 
-  * `cargo miri test`
-  * Optional static analysis (Kani/MIRAI)
-
----
-
-## 📦 Submission (Git Bundle)
-
-To generate the final deliverable:
-
-```
-git bundle create fat32_project.bundle --all
-```
-
-Verify the bundle:
-
-```
-git clone fat32_project.bundle test-repo
-```
-
-Check the commit history is present and clean.
-
----
-
-## 📄 Credits
-
-If you use external code:
-
-* Must credit in the README and inside the source file
-* Must respect original license
-
-Not crediting external code = **grade 0**.
+* **Assistance par Modèle de Langage (LLM)**
+    * Assistance à la conception et au débogage fournie par Gemini.
+    * Assistance au code et à la documentation fournie par ChatGPT.
 
 ---
