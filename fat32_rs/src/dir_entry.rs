@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 #[derive(Debug)]
 pub struct DirEntry {
     pub name: String,

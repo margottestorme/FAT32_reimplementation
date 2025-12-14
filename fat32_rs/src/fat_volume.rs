@@ -1,8 +1,11 @@
 use alloc::vec::Vec; 
+use alloc::vec;
+use alloc::format;
 use core::convert::TryInto; // Nécessaire pour convertir le slice en tableau [u8; 4]
 use crate::storage::{BlockDevice, Error};
 use crate::boot_sector::Fat32BootSector;
 use crate::dir_entry::DirEntry;
+use crate::alloc::string::ToString;
 
 // Valeurs spéciales de la FAT32 pour l'interprétation des entrées
 const FAT32_EOC_MIN: u32 = 0x0FFFFFF8; // Début de la plage "End Of Chain"
@@ -18,6 +21,7 @@ pub struct FatVolume<D: BlockDevice> {
     pub root_cluster: u32,
     pub cluster_size_bytes: u32,
     pub sectors_per_fat: u32,
+    pub current_dir_cluster: u32,
 }
 
 impl<D: BlockDevice> FatVolume<D> {
@@ -66,6 +70,7 @@ impl<D: BlockDevice> FatVolume<D> {
             root_cluster: bs_ref.root_cluster,
             cluster_size_bytes,
             sectors_per_fat,
+            current_dir_cluster: bs_ref.root_cluster,
         })
     }
 
@@ -302,5 +307,16 @@ impl<D: BlockDevice> FatVolume<D> {
         Err(Error::InvalidParameter)
     }
 
+    pub fn cd(&mut self, dir_name: &str) -> Result<(), Error> {
+        let entries = self.read_dir(self.current_dir_cluster)?;
 
+        for entry in entries {
+            if entry.name.eq_ignore_ascii_case(dir_name) && entry.is_dir {
+                self.current_dir_cluster = entry.first_cluster;
+                return Ok(());
+            }
+        }
+
+        Err(Error::InvalidParameter) // répertoire introuvable
+    }
 }

@@ -17,7 +17,7 @@ fn main() -> Result<(), fat32_rs::storage::Error> {
 
     println!("--- LS / ---");
 
-    let entries = vol.read_dir(vol.root_cluster)?;
+    let entries = vol.read_dir(vol.current_dir_cluster)?;
 
     for e in entries {
         if e.is_dir {
@@ -29,21 +29,21 @@ fn main() -> Result<(), fat32_rs::storage::Error> {
 
     println!("\n--- CAT HELLO.TXT ---");
 
-    let content = vol.read_file_by_name(vol.root_cluster, "HELLO.TXT")?;
+    let content = vol.read_file_by_name(vol.current_dir_cluster, "HELLO.TXT")?;
     println!("{}", String::from_utf8_lossy(&content));
 
 
     println!("\n--- CAT TEST.TXT ---");
 
-    let content = vol.read_file_by_name(vol.root_cluster, "TEST.TXT")?;
+    let content = vol.read_file_by_name(vol.current_dir_cluster, "TEST.TXT")?;
     println!("{}", String::from_utf8_lossy(&content));
 
 
     println!("\n--- CAT NOPE.TXT ---");
 
-    match vol.read_file_by_name(vol.root_cluster, "NOPE.TXT") {
+    match vol.read_file_by_name(vol.current_dir_cluster, "NOPE.TXT") {
         Ok(_) => println!("ERROR: shouldn't exist"),
-        Err(_) => println!("File not found (OK)"),
+        Err(_) => println!("File not found"),
     }
 
     Ok(())
