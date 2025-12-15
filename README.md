@@ -128,17 +128,17 @@ To run all tests:
 cargo test --features std
 ```
 
-## 📄 Références et Crédits
+## 📄 References and Credits
 
-* **Documentation et Références Techniques**
-    * [FAT32 (Wikipedia, FR)](https://fr.wikipedia.org/wiki/FAT32)
-    * [Implémentation de Référence (vfat-rs)](https://github.com/FedericoPonzi/vfat-rs/tree/master)
+* **Documentation and Technical References**
+  * [FAT32 (Wikipedia, FR)](https://fr.wikipedia.org/wiki/FAT32)
+  * [Reference Implementation (vfat-rs)](https://github.com/FedericoPonzi/vfat-rs/tree/master)
 
-* **Ressources Multimédia**
-    * [Tutoriel YouTube pertinent](https://youtu.be/7o3qx66uLz8?si=O02DE-eeQRlQ3T2P)
+* **Multimedia Resources**
+  * [Relevant YouTube Tutorial](https://youtu.be/7o3qx66uLz8?si=O02DE-eeQRlQ3T2P)
 
-* **Assistance par Modèle de Langage (LLM)**
-    * Assistance à la conception et au débogage fournie par Gemini.
-    * Assistance au code et à la documentation fournie par ChatGPT.
+* **Language Model (LLM) Assistance**
+  * Design and debugging assistance provided by Gemini.
+  * Code and documentation assistance provided by ChatGPT.
 
 ---
