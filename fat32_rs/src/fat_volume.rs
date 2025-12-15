@@ -124,6 +124,10 @@ impl<D: BlockDevice> FatVolume<D> {
         // FAT est Little Endian. Seuls les 28 bits de poids faible sont l'index de cluster.
         let fat_entry = u32::from_le_bytes(raw_entry_bytes) & 0x0FFFFFFF;
 
+        if Self::is_eoc(fat_entry) {
+            return Ok(0);
+        }
+
         Ok(fat_entry)
     }
     

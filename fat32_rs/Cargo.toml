@@ -8,5 +8,5 @@ edition = "2021"
 [dev-dependencies]
 
 [features]
-# La feature std active juste l’usage de std dans ton code
+default = ["std"]
 std = []
